@@ -1,0 +1,36 @@
+name: PitWall Data Ingestion
+
+on:
+  # runs automatically every Monday at 6am UTC (11:30am IST)
+  schedule:
+    - cron: "0 6 * * 1"
+  # also lets you trigger it manually from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run F1 ingestion
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python ingestion/f1_ingest.py
+
+      - name: Run MotoGP ingestion
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python ingestion/motogp_ingest.py

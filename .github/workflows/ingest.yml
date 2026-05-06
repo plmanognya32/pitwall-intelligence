@@ -1,11 +1,13 @@
 name: PitWall Data Ingestion
 
 on:
-  # runs automatically every Monday at 6am UTC (11:30am IST)
   schedule:
     - cron: "0 6 * * 1"
-  # also lets you trigger it manually from GitHub UI
   workflow_dispatch:
+
+env:
+  SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+  SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
 
 jobs:
   ingest:
@@ -23,14 +25,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Debug secrets present
+        run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "SUPABASE_URL is EMPTY"
+          else
+            echo "SUPABASE_URL is set (length: ${#SUPABASE_URL})"
+          fi
+          if [ -z "$SUPABASE_KEY" ]; then
+            echo "SUPABASE_KEY is EMPTY"
+          else
+            echo "SUPABASE_KEY is set (length: ${#SUPABASE_KEY})"
+          fi
+
       - name: Run F1 ingestion
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python ingestion/f1_ingest.py
 
       - name: Run MotoGP ingestion
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: python ingestion/motogp_ingest.py

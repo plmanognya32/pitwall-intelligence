@@ -4,8 +4,8 @@ import time
 from supabase import create_client
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # MotoGP public API - free, no key needed
 MOTOGP_BASE = "https://api.motogp.pulselive.com/motogp/v1"

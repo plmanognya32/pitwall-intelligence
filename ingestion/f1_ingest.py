@@ -5,8 +5,8 @@ from supabase import create_client
 
 # --- connect to supabase ---
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_KEY = os.environ["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 # Ergast base URL - completely free, no key needed
 ERGAST_BASE = "https://api.jolpi.ca/ergast/f1"

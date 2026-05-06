@@ -9,7 +9,7 @@ SUPABASE_KEY = os.environ["SUPABASE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Ergast base URL - completely free, no key needed
-ERGAST_BASE = "https://ergast.com/api/f1"
+ERGAST_BASE = "https://api.jolpi.ca/ergast/f1"
 
 def fetch_json(url):
     """Fetch JSON from a URL with basic error handling."""

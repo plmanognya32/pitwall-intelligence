@@ -99,7 +99,7 @@ def ingest_event_results(event_id, race_id):
         supabase.table("motogp_sessions").insert(rows).execute()
 
 if __name__ == "__main__":
-    seasons = range(2010, 2025)
+    seasons = range(2003, 2025)
     for season in seasons:
         try:
             ingest_season(2023)

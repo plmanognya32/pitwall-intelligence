@@ -121,7 +121,8 @@ def ingest_laps(season, round_num, race_id):
         time.sleep(0.3)
 
 if __name__ == "__main__":
-    seasons = range(2010, 2025)
+    seasons = range(2003, 2025)
+    
     for season in seasons:
         try:
             ingest_season_results(season)

@@ -99,5 +99,10 @@ def ingest_event_results(event_id, race_id):
         supabase.table("motogp_sessions").insert(rows).execute()
 
 if __name__ == "__main__":
-    ingest_season(2023)
+    seasons = range(2010, 2025)
+    for season in seasons:
+        try:
+            ingest_season(2023)
+        except:
+            print(f" MotoGP season {season} failed: {e}, skipping.")
     print("MotoGP ingestion complete.")

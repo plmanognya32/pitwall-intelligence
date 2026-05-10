@@ -6,7 +6,7 @@ from retrieve import retrieve
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
-GEMINI_AI_KEY = os.environ["GEMINI_AI_KEY"]
+GEMINI_API_KEY = os.environ["GEMINI_AI_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 genai.configure(api_key=GEMINI_API_KEY)

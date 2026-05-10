@@ -138,7 +138,7 @@ def embed_season(season):
     print(f"  season {season} done")
 
 if __name__ == "__main__":
-    for season in range(2018, 2025):
+    for season in range(2003, 2025):
         try:
             embed_season(season)
         except Exception as e:

@@ -13,7 +13,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 def get_embedding(text):
     """ text to vector """
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model="models/embedding-001",
         content=text,
         task_type="retrieval_document"
     )

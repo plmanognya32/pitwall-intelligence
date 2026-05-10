@@ -45,3 +45,9 @@ jobs:
 
       - name: Run MotoGP ingestion
         run: python ingestion/motogp_ingest.py
+
+      - name: Run embedding
+        run: python rag/embed.py
+
+      - name: Generate briefing cards
+        run: python rag/generate_cards.py  

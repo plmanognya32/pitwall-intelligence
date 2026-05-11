@@ -1,6 +1,6 @@
 import os
 import time
-from google import genai
+import requests
 from supabase import create_client
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
@@ -8,39 +8,43 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-client = genai.Client(api_key=GEMINI_API_KEY)
 
-EMBED_MODEL = "models/text-embedding-004"
+GEMINI_EMBED_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "text-embedding-004:embedContent?key={key}"
+)
+GEMINI_EMBED_DIM = 768
 
 def get_embedding(text):
-    result = client.models.embed_content(
-        model="text-embedding-004",
-        contents=text,
-    )
-    return result.embeddings[0].values
+    """Call Gemini embedding REST API directly — no SDK needed."""
+    url = GEMINI_EMBED_URL.format(key=GEMINI_API_KEY)
+    payload = {
+        "model": "models/text-embedding-004",
+        "content": {"parts": [{"text": text}]},
+        "taskType": "RETRIEVAL_DOCUMENT"
+    }
+    resp = requests.post(url, json=payload, timeout=30)
+    resp.raise_for_status()
+    return resp.json()["embedding"]["values"]
 
 def build_f1_chunk(race, laps):
     last_lap = max((l["lap_number"] for l in laps), default=0)
     final_positions = [l for l in laps if l["lap_number"] == last_lap]
     final_positions.sort(key=lambda x: x["position"])
     winner = final_positions[0]["driver_code"] if final_positions else "Unknown"
-
     valid_laps = [l for l in laps if l["lap_time_secs"]]
     fastest = min(valid_laps, key=lambda x: x["lap_time_secs"]) if valid_laps else None
     fastest_str = (
         f"{fastest['driver_code']} ({fastest['lap_time_secs']:.3f}s)"
         if fastest else "Unknown"
     )
-
     compounds_used = list(set(l["compound"] for l in laps if l.get("compound")))
     pit_counts = {}
     for l in laps:
         if l.get("pit_in"):
             d = l["driver_code"]
             pit_counts[d] = pit_counts.get(d, 0) + 1
-
     circuit = race.get("circuits") or {}
-
     return f"""F1 Race Report: {race['race_name']} {race['season']}
 Series: Formula 1
 Season: {race['season']}
@@ -61,8 +65,7 @@ def build_motogp_chunk(race, sessions):
     dnf_count = sum(1 for s in sessions if s.get("dnf"))
     fastest = min(
         (s for s in sessions if s.get("fastest_lap_secs")),
-        key=lambda x: x["fastest_lap_secs"],
-        default=None
+        key=lambda x: x["fastest_lap_secs"], default=None
     )
     fastest_str = (
         f"{fastest['rider_name']} ({fastest['fastest_lap_secs']:.3f}s)"
@@ -88,7 +91,6 @@ def embed_season(season):
     for race in races:
         race_id = race["id"]
         series = race["series"]
-
         existing = supabase.table("race_documents").select("id").eq(
             "race_id", race_id
         ).execute().data
@@ -104,7 +106,6 @@ def embed_season(season):
                 print(f"  skipping {race['race_name']} — no lap data")
                 continue
             chunk_text = build_f1_chunk(race, laps)
-
         elif series == "motogp":
             sessions = supabase.table("motogp_sessions").select("*").eq(
                 "race_id", race_id

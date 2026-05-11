@@ -50,4 +50,7 @@ jobs:
         run: python rag/embed.py
 
       - name: Generate briefing cards
-        run: python rag/generate_cards.py  
+        run: python rag/generate_cards.py
+
+      - name: List available Gemini models
+        run: python rag/list_models.py

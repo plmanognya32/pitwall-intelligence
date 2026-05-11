@@ -7,22 +7,18 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-# MotoGP public API - free, no key needed
-MOTOGP_BASE = "https://api.motogp.pulselive.com/motogp/v1"
+MOTOGP_BASE = "https://api.jolpi.ca/ergast/motog1"
 
 def fetch_json(url):
-    headers = {"Accept": "application/json"}
-    response = requests.get(url, headers=headers, timeout=15)
+    response = requests.get(url, timeout=15)
     response.raise_for_status()
     return response.json()
 
 def upsert_circuit(circuit_name, country):
-    """MotoGP API gives less circuit detail so we keep it simple."""
-    circuit_key = circuit_name.lower().replace(" ", "_")
     circuit = {
-        "circuit_key": f"motogp_{circuit_key}",
-        "name": circuit_name,
-        "country": country,
+        "circuit_key": f"motogp_{circuit_data.get('circuitId', 'unknown')}",
+        "name": circuit_data.get("circuitName", "Unknown"),
+        "country": circuit_data.get("Location", {}).get("country", "Unknown"),
     }
     supabase.table("circuits").upsert(
         circuit, on_conflict="circuit_key"
@@ -36,67 +32,67 @@ def ingest_season(season):
     """Pull MotoGP race results for a season."""
     print(f"--- ingesting MotoGP season {season} ---")
     # fetch the event calendar for the season
-    url = f"{MOTOGP_BASE}/results/seasons/{season}/events"
+    url = f"{MOTOGP_BASE}/{season}/results.json?limit=1000"
     try:
         events = fetch_json(url)
     except Exception as e:
-        print(f"  could not fetch events: {e}")
+        print(f"  could not fetch events {season}: {e}")
         return
 
-    for event in events:
-        event_id = event.get("id")
-        event_name = event.get("name", "Unknown GP")
-        country = event.get("country", {}).get("name", "Unknown")
+    races = data.get("MRData", {}).get("RaceTable", {}).get("Races, []")
+    print(f" found {len(races)} races")
 
-        circuit_id = upsert_circuit(event_name, country)
+    for race in races:
+        round_num = race.get("round", 0)
+        circuit_id = upsert_circuit(race.get("Circuit", {}))
 
-        # upsert the race row
-        race = {
+        race_row = {
             "series": "motogp",
             "season": int(season),
-            "round": event.get("number", 0),
-            "race_name": event_name,
+            "round": int(round_num),
+            "race_name": race.get("raceName", "Unknown GP"),
             "circuit_id": circuit_id,
+            "race_date": race.get("date"),
         }
         supabase.table("races").upsert(
-            race, on_conflict="series,season,round"
+            race_row, on_conflict="series,season,round"
         ).execute()
-        race_row = supabase.table("races").select("id").eq(
+        race_db = supabase.table("races").select("id").eq(
             "series", "motogp"
         ).eq("season", int(season)).eq(
-            "round", event.get("number", 0)
+            "round", int(round_num)
         ).single().execute()
         race_id = race_row.data["id"]
 
-        # fetch session results for this event
-        ingest_event_results(event_id, race_id)
-        time.sleep(0.5)
+        results = race.get("Results", [])
+        rows = []
+        for entry in results:
+            fastest = entry.get("FastestLap", {}).get("Time", {}).get("time")
+            fastest_secs = None
+            if fastest:
+                try:
+                    parts = fastest.split(":")
+                    fastest_secs = float(parts[0]) * 60 + float(parts[1])
+                except Exception:
+                    pass
 
-    print(f"  MotoGP season {season} done")
+            status = entry.get("status", "")
+            rows.append({
+                "race_id": race_id,
+                "rider_name": entry.get("Driver", {}).get("familyName", "Unknown"),
+                "team": entry.get("Constructor", {}).get("name", "Unknown"),
+                "finish_position": int(entry.get("position")) if entry.get("position") else None,
+                "fastest_lap_secs": fastest_secs,
+                "points": int(float(entry.get("points", 0))),
+                "dnf": status.upper() not in ["FINISHED", ""] and not status.isdigit(),
+            })
 
-def ingest_event_results(event_id, race_id):
-    """Pull rider results for one MotoGP event."""
-    url = f"{MOTOGP_BASE}/results/events/{event_id}/categories/MotoGP/sessions/RAC/classification"
-    try:
-        data = fetch_json(url)
-    except Exception as e:
-        print(f"  skipping event {event_id}: {e}")
-        return
+        if rows:
+            supabase.table("motogp_sessions").insert(rows).execute()
 
-    rows = []
-    for entry in data.get("classification", []):
-        rows.append({
-            "race_id": race_id,
-            "rider_name": entry.get("rider", {}).get("full_name", "Unknown"),
-            "team": entry.get("team", {}).get("name", "Unknown"),
-            "finish_position": entry.get("position"),
-            "fastest_lap_secs": entry.get("best_lap_time"),
-            "points": entry.get("points", 0),
-            "dnf": entry.get("status", "").upper() in ["DNF", "DNS", "RET"],
-        })
+        time.sleep(2)
 
-    if rows:
-        supabase.table("motogp_sessions").insert(rows).execute()
+    print(f" MotoGP season {season} done")
 
 if __name__ == "__main__":
     seasons = range(2003, 2025)

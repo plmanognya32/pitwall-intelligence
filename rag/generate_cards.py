@@ -1,6 +1,6 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
 from supabase import create_client
 from retrieve import retrieve
 
@@ -9,9 +9,9 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+# model = genai.GenerativeModel("gemini-1.5-flash")
 
 CARD_TOPICS = [
     {
@@ -76,7 +76,11 @@ def generate_card(topic_config):
     """
 
     try:
-        response = model.generate_content(prompt)
+        # response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt,
+        )
         text = response.text.strip()
         if text.startswith("```"):
             text = text.split("```")[1]

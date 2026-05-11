@@ -69,7 +69,7 @@ def ingest_season_results(season):
         # pull lap times for this race (separate endpoint)
         ingest_laps(season, round_num, race_id)
         # be polite to the free API - don't hammer it
-        time.sleep(0.5)
+        time.sleep(2)
 
     print(f"  season {season} done")
 
@@ -118,7 +118,7 @@ def ingest_laps(season, round_num, race_id):
             supabase.table("f1_laps").insert(rows).execute()
 
         page += 1
-        time.sleep(0.3)
+        time.sleep(1)
 
 if __name__ == "__main__":
     seasons = range(2003, 2025)

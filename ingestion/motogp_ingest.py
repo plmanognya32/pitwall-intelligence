@@ -7,16 +7,34 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
+# Jolpica supports these motorcycle series:
+# moto1 = 500cc / MotoGP premier class
+# moto2, moto3 for lower classes
 MOTOGP_BASE = "https://api.jolpi.ca/ergast/moto1"
 
 def fetch_json(url):
-    response = requests.get(url, timeout=15)
-    response.raise_for_status()
-    return response.json()
+    for attempt in range(3):
+        try:
+            resp = requests.get(url, timeout=15)
+            if resp.status_code == 429:
+                wait = 10 * (attempt + 1)
+                print(f"  rate limited, waiting {wait}s...")
+                time.sleep(wait)
+                continue
+            if resp.status_code == 404:
+                return None
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.HTTPError as e:
+            if attempt == 2:
+                raise
+            time.sleep(5)
+    return None
 
-def upsert_circuit(circuit_name, country):
+def upsert_circuit(circuit_data):
+    circuit_key = f"motogp_{circuit_data.get('circuitId', 'unknown')}"
     circuit = {
-        "circuit_key": f"motogp_{circuit_data.get('circuitId', 'unknown')}",
+        "circuit_key": circuit_key,
         "name": circuit_data.get("circuitName", "Unknown"),
         "country": circuit_data.get("Location", {}).get("country", "Unknown"),
     }
@@ -24,23 +42,21 @@ def upsert_circuit(circuit_name, country):
         circuit, on_conflict="circuit_key"
     ).execute()
     row = supabase.table("circuits").select("id").eq(
-        "circuit_key", f"motogp_{circuit_key}"
+        "circuit_key", circuit_key
     ).single().execute()
     return row.data["id"]
 
 def ingest_season(season):
-    """Pull MotoGP race results for a season."""
     print(f"--- ingesting MotoGP season {season} ---")
-    # fetch the event calendar for the season
     url = f"{MOTOGP_BASE}/{season}/results.json?limit=1000"
-    try:
-        events = fetch_json(url)
-    except Exception as e:
-        print(f"  could not fetch events {season}: {e}")
+    data = fetch_json(url)
+
+    if not data:
+        print(f"  no data for {season}, skipping")
         return
 
-    races = data.get("MRData", {}).get("RaceTable", {}).get("Races, []")
-    print(f" found {len(races)} races")
+    races = data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
+    print(f"  found {len(races)} races")
 
     for race in races:
         round_num = race.get("round", 0)
@@ -62,7 +78,7 @@ def ingest_season(season):
         ).eq("season", int(season)).eq(
             "round", int(round_num)
         ).single().execute()
-        race_id = race_row.data["id"]
+        race_id = race_db.data["id"]
 
         results = race.get("Results", [])
         rows = []
@@ -81,10 +97,10 @@ def ingest_season(season):
                 "race_id": race_id,
                 "rider_name": entry.get("Driver", {}).get("familyName", "Unknown"),
                 "team": entry.get("Constructor", {}).get("name", "Unknown"),
-                "finish_position": int(entry.get("position")) if entry.get("position") else None,
+                "finish_position": int(entry["position"]) if entry.get("position", "").isdigit() else None,
                 "fastest_lap_secs": fastest_secs,
                 "points": int(float(entry.get("points", 0))),
-                "dnf": status.upper() not in ["FINISHED", ""] and not status.isdigit(),
+                "dnf": not (entry.get("position", "").isdigit()),
             })
 
         if rows:
@@ -92,13 +108,14 @@ def ingest_season(season):
 
         time.sleep(2)
 
-    print(f" MotoGP season {season} done")
+    print(f"  MotoGP season {season} done")
 
 if __name__ == "__main__":
-    seasons = range(2003, 2025)
-    for season in seasons:
+    # moto1 covers 1949-2014 (500cc era + early MotoGP)
+    for season in range(2003, 2015):
         try:
-            ingest_season(2023)
-        except:
-            print(f" MotoGP season {season} failed: {e}, skipping.")
+            ingest_season(season)
+        except Exception as e:
+            print(f"  season {season} failed: {e}, skipping")
+        time.sleep(8)
     print("MotoGP ingestion complete.")

@@ -11,7 +11,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 GEMINI_EMBED_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "text-embedding-004:embedContent?key={key}"
+    "gemini-embedding-001:embedContent?key={key}"
 )
 GEMINI_EMBED_DIM = 768
 
@@ -19,7 +19,7 @@ def get_embedding(text):
     """Call Gemini embedding REST API directly — no SDK needed."""
     url = GEMINI_EMBED_URL.format(key=GEMINI_API_KEY)
     payload = {
-        "model": "models/text-embedding-004",
+        "model": "models/gemini-embedding-001",
         "content": {"parts": [{"text": text}]},
         "taskType": "RETRIEVAL_DOCUMENT"
     }

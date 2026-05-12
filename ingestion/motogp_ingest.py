@@ -7,7 +7,7 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-MOTOGP_BASE = "https://api.jolpi.ca/ergast/motog1"
+MOTOGP_BASE = "https://api.jolpi.ca/ergast/moto1"
 
 def fetch_json(url):
     response = requests.get(url, timeout=15)

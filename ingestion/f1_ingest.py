@@ -121,11 +121,9 @@ def ingest_laps(season, round_num, race_id):
         time.sleep(1)
 
 if __name__ == "__main__":
-    seasons = range(2003, 2025)
-    
-    for season in seasons:
+    for season in range(2003, 2025):
         try:
             ingest_season_results(season)
         except Exception as e:
             print(f" season {season} failed: {e}, skipping")
-    print("F1 ingestion complete.")
+        time.sleep(5)

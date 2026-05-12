@@ -8,15 +8,15 @@ GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-GEMINI_EMBED_URL = (
+GEMINI_GENERATE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "text-embedding-004:embedContent?key={key}"
+    "gemini-2.0-flash:generateContent?key={key}"
 )
 
 def get_query_embedding(text):
-    url = GEMINI_EMBED_URL.format(key=GEMINI_API_KEY)
+    url = GEMINI_GENERATE_URL.format(key=GEMINI_API_KEY)
     payload = {
-        "model": "models/text-embedding-004",
+        "model": "models/gemini-embedding-001",
         "content": {"parts": [{"text": text}]},
         "taskType": "RETRIEVAL_QUERY"
     }

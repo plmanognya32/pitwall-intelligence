@@ -1,9 +1,9 @@
 import os
 import requests
 
-GEMINI_AI_KEY = os.environ["GEMINI_AI_KEY"]
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
-url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_AI_KEY}"
+url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}"
 resp = requests.get(url, timeout=15)
 print(resp.status_code)
 data = resp.json()

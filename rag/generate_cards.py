@@ -24,7 +24,7 @@ CARD_TOPICS = [
 ]
 
 def generate_text(prompt):
-    url = GEMINI_GENERATE_URL.format(key=GEMINI_AI_KEY)
+    url = GEMINI_GENERATE_URL.format(key=GEMINI_API_KEY)
     payload = {
         "contents": [
             {

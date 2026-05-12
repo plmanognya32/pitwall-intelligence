@@ -46,11 +46,15 @@ jobs:
       - name: Run MotoGP ingestion
         run: python ingestion/motogp_ingest.py
 
+      - name: List available Gemini models
+        run: python rag/list_models.py
+
+      - name: List available Gemini models
+        continue-on-error: true
+        run: python rag/list_models.py
+
       - name: Run embedding
         run: python rag/embed.py
 
       - name: Generate briefing cards
         run: python rag/generate_cards.py
-
-      - name: List available Gemini models
-        run: python rag/list_models.py

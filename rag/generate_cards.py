@@ -12,7 +12,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 GEMINI_GENERATE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-1.5-flash:generateContent?key={key}"
+    "gemini-2.0-flash:generateContent?key={key}"
 )
 
 CARD_TOPICS = [
@@ -24,14 +24,23 @@ CARD_TOPICS = [
 ]
 
 def generate_text(prompt):
-    """Call Gemini generate REST API directly."""
-    url = GEMINI_GENERATE_URL.format(key=GEMINI_API_KEY)
+    url = GEMINI_GENERATE_URL.format(key=GEMINI_AI_KEY)
     payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 512}
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 512
+        }
     }
     resp = requests.post(url, json=payload, timeout=30)
-    resp.raise_for_status()
+    if not resp.ok:
+        print(f"  generate error: {resp.status_code} {resp.text[:200]}")
+        resp.raise_for_status()
     candidates = resp.json().get("candidates", [])
     if not candidates:
         return None

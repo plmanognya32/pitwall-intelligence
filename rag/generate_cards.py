@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import time
 from supabase import create_client
 from retrieve import retrieve
 
@@ -12,7 +13,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 GEMINI_GENERATE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.0-flash:generateContent?key={key}"
+    "gemini-2.0-flash-lite:generateContent?key={key}"
 )
 
 CARD_TOPICS = [
@@ -96,6 +97,14 @@ def generate_all_cards():
         if card:
             cards.append(card)
             print(f"  done: {card['title']}")
+
+    for topic_config in CARD_TOPICS:
+        print(f"  generating: {topic_config['topic']}")
+        card = generate_card(topic_config)
+        if card:
+            cards.append(card)
+            print(f"  done: {card['title']}")
+        time.sleep(5)  # avoid rate limiting
 
     if cards:
         supabase.table("briefing_cards").delete().neq("id", 0).execute()

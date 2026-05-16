@@ -47,9 +47,6 @@ jobs:
         run: python ingestion/motogp_ingest.py
 
       - name: List available Gemini models
-        run: python rag/list_models.py
-
-      - name: List available Gemini models
         continue-on-error: true
         run: python rag/list_models.py
 

@@ -24,28 +24,27 @@ CARD_TOPICS = [
     {"topic": "MotoGP championship deciding races", "series": "motogp", "tag": "Championship"},
 ]
 
-def generate_text(prompt):
+def generate_text(prompt, retries=3):
     url = GEMINI_GENERATE_URL.format(key=GEMINI_API_KEY)
     payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": prompt}]
-            }
-        ],
-        "generationConfig": {
-            "temperature": 0.3,
-            "maxOutputTokens": 512
-        }
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.3, "maxOutputTokens": 512}
     }
-    resp = requests.post(url, json=payload, timeout=30)
-    if not resp.ok:
-        print(f"  generate error: {resp.status_code} {resp.text[:200]}")
-        resp.raise_for_status()
-    candidates = resp.json().get("candidates", [])
-    if not candidates:
-        return None
-    return candidates[0]["content"]["parts"][0]["text"]
+    for attempt in range(retries):
+        resp = requests.post(url, json=payload, timeout=30)
+        if resp.status_code == 429:
+            wait = 30 * (attempt + 1)
+            print(f"  rate limited, waiting {wait}s...")
+            time.sleep(wait)
+            continue
+        if not resp.ok:
+            print(f"  generate error: {resp.status_code} {resp.text[:200]}")
+            resp.raise_for_status()
+        candidates = resp.json().get("candidates", [])
+        if not candidates:
+            return None
+        return candidates[0]["content"]["parts"][0]["text"]
+    return None
 
 def generate_card(topic_config):
     topic = topic_config["topic"]

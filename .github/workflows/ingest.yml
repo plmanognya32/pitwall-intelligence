@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
+    inputs:
+      job:
+        description: 'Which job to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - cards-only
+
 
 env:
   SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -13,6 +23,7 @@ env:
 
 jobs:
   ingest-and-embed:
+    if: github.event.inputs.job != 'cards-only'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -28,15 +39,14 @@ jobs:
         run: python rag/embed.py
 
   generate-cards:
+    if: always() && (github.event.inputs.job == 'cards-only' || needs.ingest-and-embed.result == 'success')
+    needs: [ingest-and-embed]
     runs-on: ubuntu-latest
-    needs: ingest-and-embed
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - name: Wait for quota to settle
-        run: sleep 60
       - name: Generate briefing cards
         run: python rag/generate_cards.py
